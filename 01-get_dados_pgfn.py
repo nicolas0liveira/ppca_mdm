@@ -8,26 +8,28 @@ from tqdm import tqdm
 import urllib3
 from datetime import datetime
 import time
+import re
 
-# Desabilita warnings de SSL (verify=False)
+# Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_URL = "https://www.gov.br/pgfn/pt-br/assuntos/divida-ativa-da-uniao/transparencia-fiscal-1/dados-abertos"
 RETRY_LIMIT = 3
-RETRY_DELAY = 5  # segundos entre as tentativas
+RETRY_DELAY = 5  # seconds
 
-# timestamp_run = datetime.now().strftime("%Y%m%d%H%M")
-BASE_DOWNLOAD_DIR = f"downloads"
+BASE_DOWNLOAD_DIR = "downloads"
 os.makedirs(BASE_DOWNLOAD_DIR, exist_ok=True)
 LOG_PATH = os.path.join(BASE_DOWNLOAD_DIR, "download_log.csv")
+UNIQUE_CSV_PATH = os.path.join(BASE_DOWNLOAD_DIR, "unique_downloads.csv")
 
 downloaded_successfully = set()
 errored_links = set()
+final_filenames = dict()
 
 RETRY_ERRORS_ONLY = "--retry-errors" in sys.argv
 
 def get_links_from_page(url):
-    print("🌐 Buscando links da página (com verificação de certificado desativada)...")
+    print("🌐 Fetching links from page (SSL verification disabled)...")
     response = requests.get(url, verify=False)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
@@ -44,6 +46,13 @@ def extract_subfolder_from_url(url):
     path_parts = urlparse(url).path.strip("/").split("/")
     if len(path_parts) >= 2:
         return path_parts[-2]
+    return None
+
+def parse_year_quarter(folder_name):
+    match = re.match(r"(\d{4})_trimestre_(\d{2})", folder_name)
+    if match:
+        year, quarter = match.groups()
+        return f"{year}T{int(quarter)}"
     return None
 
 def log_download(url, path, filename, status):
@@ -66,27 +75,35 @@ def init_log():
                     errored_links.add(row["url"])
 
 def download_file(url, base_folder):
-    filename = url.split("/")[-1]
+    original_filename = url.split("/")[-1]
     subfolder = extract_subfolder_from_url(url)
-    save_dir = os.path.join(base_folder, subfolder) if subfolder else base_folder
-    os.makedirs(save_dir, exist_ok=True)
-    local_filename = os.path.join(save_dir, filename)
+    prefix = parse_year_quarter(subfolder) if subfolder else None
+
+    if prefix:
+        renamed_filename = f"{prefix}_{original_filename}"
+        save_dir = base_folder
+    else:
+        renamed_filename = original_filename
+        save_dir = os.path.join(base_folder, subfolder or "unknown")
+        os.makedirs(save_dir, exist_ok=True)
+
+    local_filename = os.path.join(save_dir, renamed_filename)
 
     if not RETRY_ERRORS_ONLY and url in downloaded_successfully:
-        print(f"⏭️ Pulando (já baixado com sucesso): {filename}")
+        print(f"⏭️ Skipping (already downloaded): {renamed_filename}")
         return
     if RETRY_ERRORS_ONLY and url not in errored_links:
         return
 
     for attempt in range(1, RETRY_LIMIT + 1):
         try:
-            print(f"⬇️ Baixando ({attempt}/{RETRY_LIMIT}): {filename}")
+            print(f"⬇️ Downloading ({attempt}/{RETRY_LIMIT}): {renamed_filename}")
             response = requests.get(url, stream=True, verify=False, timeout=60)
             response.raise_for_status()
             total = int(response.headers.get('content-length', 0))
 
             with open(local_filename, 'wb') as file, tqdm(
-                desc=filename,
+                desc=renamed_filename,
                 total=total,
                 unit='B',
                 unit_scale=True,
@@ -96,26 +113,37 @@ def download_file(url, base_folder):
                     size = file.write(data)
                     bar.update(size)
 
-            print(f"✔️ Sucesso: {filename}")
-            log_download(url, local_filename, filename, "success")
-            return  # sucesso, sai do loop
+            print(f"✔️ Success: {renamed_filename}")
+            log_download(url, local_filename, renamed_filename, "success")
+            final_filenames[url] = renamed_filename
+            return
 
         except Exception as e:
-            print(f"⚠️ Tentativa {attempt} falhou: {e}")
+            print(f"⚠️ Attempt {attempt} failed: {e}")
             if attempt < RETRY_LIMIT:
-                print(f"⏳ Aguardando {RETRY_DELAY}s para tentar novamente...")
+                print(f"⏳ Waiting {RETRY_DELAY}s before retrying...")
                 time.sleep(RETRY_DELAY)
             else:
-                print(f"❌ Falha definitiva ao baixar {filename}")
-                log_download(url, local_filename, filename, "error")
+                print(f"❌ Failed to download: {renamed_filename}")
+                log_download(url, local_filename, renamed_filename, "error")
+
+def write_unique_csv(mapping, csv_path):
+    print(f"🧾 Writing unique download list to {csv_path}")
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["filename", "url"])
+        for url, filename in sorted(mapping.items()):
+            writer.writerow([filename, url])
 
 if __name__ == "__main__":
     try:
         init_log()
         links = get_links_from_page(BASE_URL)
-        print(f"{len(links)} arquivos encontrados.")
+        print(f"{len(links)} files found.")
         for link in links:
             download_file(link, BASE_DOWNLOAD_DIR)
-        print(f"\n📝 Log salvo em: {LOG_PATH}")
+        write_unique_csv(final_filenames, UNIQUE_CSV_PATH)
+        print(f"\n📝 Log saved at: {LOG_PATH}")
+        print(f"📄 Unique download list saved at: {UNIQUE_CSV_PATH}")
     except Exception as e:
-        print(f"❌ Erro geral: {e}")
+        print(f"❌ General error: {e}")

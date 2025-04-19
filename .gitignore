@@ -1,3 +1,4 @@
 dados/
 downloads/
 venv/
+__pycache__

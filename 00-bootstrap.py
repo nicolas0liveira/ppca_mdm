@@ -8,7 +8,7 @@ REQUIREMENTS = [
     "tqdm"
 ]
 
-SCRIPT_NAME = "get_dados_pgfn.py"
+SCRIPT_NAME = "01-get_dados_pgfn.py"
 VENV_PATH = "venv"
 VENV_PYTHON = os.path.join(VENV_PATH, "bin", "python")
 VENV_PIP = os.path.join(VENV_PATH, "bin", "pip")
