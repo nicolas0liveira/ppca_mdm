@@ -1,4 +1,7 @@
 dados/
-download*/
+data/raw/
+data/external/
+data/interimediate/
+data/processed/
 venv/
 __pycache__
