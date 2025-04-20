@@ -50,7 +50,7 @@ def read_zip_csvs_as_df(zip_path, encoding="utf-8", sep=";", verbose=True):
 
     with zipfile.ZipFile(zip_path, 'r') as z:
         for file_name in z.namelist():
-            if file_name.endswith(".csv"):
+            if file_name.lower().endswith("csv"):
                 if verbose:
                     print(f"📂 Reading: {file_name}")
                 with z.open(file_name) as f:
