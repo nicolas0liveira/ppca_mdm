@@ -2,13 +2,15 @@ import os
 import subprocess
 import sys
 
+import modules.data.download_receita_pgfn_data as download_script
+
 REQUIREMENTS = [
     "requests",
     "beautifulsoup4",
     "tqdm"
 ]
 
-SCRIPT_NAME = "01-download_receita_pgfn_data.py"
+# SCRIPT_NAME = "download_receita_pgfn_data.py"
 VENV_PATH = "venv"
 VENV_PYTHON = os.path.join(VENV_PATH, "bin", "python")
 VENV_PIP = os.path.join(VENV_PATH, "bin", "pip")
@@ -44,10 +46,3 @@ if __name__ == "__main__":
 
     print("\n🎉 Setup concluído!")
     print("ℹ️ Para ativar manualmente o ambiente virtual: source venv/bin/activate")
-
-    if os.path.exists(SCRIPT_NAME):
-        opcao = input(f"\n❓ Deseja executar agora o script '{SCRIPT_NAME}' dentro da venv? (y/n): ").strip().lower()
-        if opcao == "y":
-            run_script_in_venv(SCRIPT_NAME)
-    else:
-        print(f"\n⚠️ Script '{SCRIPT_NAME}' não encontrado.")
