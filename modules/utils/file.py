@@ -35,6 +35,18 @@ def extract_origem_from_filename(filename):
         return 'PREV'
     else:
         return 'OUTROS'
+    
+def extract_anomes_from_filename(filename):
+    """
+    Retorna o ano e mês do nome do arquivo.
+    Ex: 'arquivo_lai_FGTS_AC_202006.csv' -> '202006'
+    """
+    match = re.search(r'_(\d{6})\.csv$', filename)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError(f"Formato de nome de arquivo inesperado: {filename}")
+
 
 def read_zip_csvs_as_df(zip_path, encoding="utf-8", sep=";", verbose=True):
     """
@@ -63,3 +75,38 @@ def read_zip_csvs_as_df(zip_path, encoding="utf-8", sep=";", verbose=True):
 
     combined_df = pd.concat(dataframes, ignore_index=True)
     return combined_df
+def save_parquet(df, path, columns=None, unique=False, order_by=None):
+    """
+    Saves a DataFrame as a Parquet file, keeping only the specified columns,
+    optionally sorting and considering only unique records.
+
+    :param df: DataFrame to be saved.
+    :param path: File path for the .parquet file (with or without extension).
+    :param columns: List of columns to be retained in the file (default: all columns).
+    :param unique: Boolean flag to consider only unique records (default: False).
+    :param order_by: List of columns to sort by before saving (default: None).
+    :return: Filtered and saved DataFrame.
+    """
+    # Filter the DataFrame by the specified columns, if provided
+    if columns is not None:
+        df_filtered = df[columns]
+    else:
+        df_filtered = df
+
+    # Drop duplicates if unique is True
+    if unique:
+        df_filtered = df_filtered.drop_duplicates()
+
+    # Sort by specified columns if provided
+    if order_by is not None:
+        df_filtered = df_filtered.sort_values(by=order_by)
+
+    # Ensure the file path ends with .parquet
+    if not path.endswith(".parquet"):
+        path += ".parquet"
+
+    # Save to Parquet
+    df_filtered.to_parquet(path, index=False)
+    print(f"File saved at: {path}")
+
+    return df_filtered

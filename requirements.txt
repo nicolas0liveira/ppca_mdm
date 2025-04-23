@@ -1,3 +1,16 @@
 requests
 beautifulsoup4
 tqdm
+pandas
+pyarrow
+
+matplotlib
+networkx
+pygraphviz
+plotly
+scipy
+
+seaborn
+
+
+loguru
