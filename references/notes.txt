@@ -39,5 +39,15 @@
     TRANSFERIDA             31       0
 
 
-2. O campo VALOR_CONSOLIDADO possui valores extremos: 0.03, 0.1 e valores extremamente altos. 
+2. O campo VALOR_CONSOLIDADO possui valores extremos: 0.03, 0.1 e valores extremamente altos.  Ideal seria criar faixas
 
+
+3. Tem inscricao que estavam como SIM e voltaram para NAO: FGGO201000004. Percebi que isso pode acontecer
+
+
+
+
+Conversa Denise
+. Será que o CNPJ já foi ajuizado antes?
+. A PGFN tem 5 anos para mandar para ajuizamento (depois prescreve)
+. Se negocia (parcela) o processo é suspenso
