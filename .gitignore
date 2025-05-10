@@ -4,4 +4,5 @@ data/external/
 data/interimediate/
 data/processed/
 venv/
+output/
 __pycache__
